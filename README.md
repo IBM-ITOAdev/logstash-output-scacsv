@@ -1,43 +1,33 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>logstash for SCAPI - output scacsv</title>
+<title>Logstash for SCAPI - output scacsv</title>
 <link rel="stylesheet" href="http://logstash.net/style.css">
 </head>
 <body>
 <div class="container">
 <div class="header">
-<a href="/"><img src="http://logstash.net/images/logo.png" alt="logstash"/></a>
-<div class="nav">
-<a href="http://logstash.net/">home</a>
-<a href="http://logstash.net/docs/1.4.2">docs</a>
-<a href="http://logstash.net/docs/1.4.2/learn">about</a>
-<a href="https://github.com/elasticsearch/logstash/issues">bugs</a>
-</div>
-</div>
-<div id="content_right">
+
 <!--main content goes here, yo!-->
 <div class="content_wrapper">
-<img src="http://logstash.net/images/logstash.png" alt="logstash" class="mascot" style="float: right;"/>
 <h2>scacsv</h2>
-<h3>Milestone: <a href="http://logstash.net/docs/1.4.2/plugin-milestones">1</a></h3>
 <h3> Synopsis </h3>
 Receives a stream of events and outputs files complying with the SCAPI requirements related to header and file naming.
 Essentially provides a match between Logstash's 'streaming' approach and SCAPI's file-based input reqmts.
 This is what it might look like in your config file:
 <pre><code>output {
 scacsv {
-<a href="#fields">fields</a> => ... # array (required)
-<a href="#header">header</a> => ... # array (optional), default: {}
-<a href="#path">path</a> => ... # string (required)
-<a href="#group">group</a> => ... # string (required)
-<a href="#max_size">max_size</a> => ... # number (optional), default: 0 (not used)
-<a href="#flush_interval">flush_interval</a> => ... # number (optional), default: 60
-<a href="#time_field">time_field</a> => ... # string (optional), default: 'timestamp'
-<a href="#time_field_format">time_field_format</a> => ... # string (required)
-<a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: ""
-<a href="#increment_time">increment_time</a> => ... # boolean (optional), default: false
-}
+  <a href="#fields">fields</a> => ... # array (required)
+  <a href="#header">header</a> => ... # array (optional), default: {}
+  <a href="#path">path</a> => ... # string (required)
+  <a href="#group">group</a> => ... # string (required)
+  <a href="#max_size">max_size</a> => ... # number (optional), default: 0 (not used)
+  <a href="#flush_interval">flush_interval</a> => ... # number (optional), default: 60
+  <a href="#time_field">time_field</a> => ... # string (optional), default: 'timestamp'
+  <a href="#time_field_format">time_field_format</a> => ... # string (required)
+  <a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: ""
+  <a href="#increment_time">increment_time</a> => ... # boolean (optional), default: false
+  }
 }
 </code></pre>
 <h3> Details </h3>
@@ -170,3 +160,4 @@ Hello! I'm your friendly footer. If you're actually reading this, I'm impressed.
 <script src="/js/patch.js?1.4.2"></script>
 </body>
 </html>
+
