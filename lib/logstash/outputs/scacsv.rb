@@ -229,7 +229,7 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
           @endTime   = @endTime.to_i + @tz_offset
           if (@increment_time)
             # increment is used to ensure that the end-time on the filename is after the last data value
-            @endTime = @endTime.to_i + 1
+            @endTime = @endTime.to_i + 1000
           end
         end
 
