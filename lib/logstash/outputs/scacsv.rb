@@ -94,8 +94,12 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
 
     @logger.debug("in SCACSV receive")
 
-    if (event['SCAWindowMarker']) and (@recordCount >= 1)
+    if (event['SCAWindowMarker']) 
+      # just eat the marker - don't output it
+      # if we had at least one record output, then close the file and move on 
+      if @recordCount >= 1
         closeAndRenameCurrentFile
+      end
     else
       @formattedPath = event.sprintf(@path)
       fd = open(@formattedPath)
@@ -206,41 +210,48 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
 
         # Now the various time adjustments
 
-        if (@time_field_format != "epoch")
-          # if not epoch, then we expect java timestamp format
-          # so must convert start/end times
+        begin # determine start&end times
 
-          df = java.text.SimpleDateFormat.new(@time_field_format)
-          nStartTime = df.parse(@startTime)
-          nEndTime   = df.parse(@endTime)
+          if (@time_field_format != "epoch")
+            # if not epoch, then we expect java timestamp format
+            # so must convert start/end times
 
-          @startTime = df.parse(@startTime).getTime
-          @endTime   = df.parse(@endTime).getTime
+            df = java.text.SimpleDateFormat.new(@time_field_format)
+            nStartTime = df.parse(@startTime)
+            nEndTime   = df.parse(@endTime)
 
-        end
-
-        # Ensure epoch time from here on out
-
-        if (!@startTime.nil?)
-          @startTime = @startTime.to_i + @tz_offset
-        end
-
-        if (!@endTime.nil?)
-          @endTime   = @endTime.to_i + @tz_offset
-          if (@increment_time)
-            # increment is used to ensure that the end-time on the filename is after the last data value
-
-            @endTime = @endTime.to_i + 1000 # 1000ms = 1sec
+            @startTime = df.parse(@startTime).getTime
+            @endTime   = df.parse(@endTime).getTime
 
           end
-        end
 
-        # then do conversion for output
+          # Ensure epoch time from here on out
+
+          if (!@startTime.nil?)
+            @startTime = @startTime.to_i + @tz_offset
+          end
+
+          if (!@endTime.nil?)
+            @endTime   = @endTime.to_i + @tz_offset
+            if (@increment_time)
+              # increment is used to ensure that the end-time on the filename is after the last data value
+
+              @endTime = @endTime.to_i + 1000 # 1000ms = 1sec
+
+            end
+          end
+
+          # then do conversion for output
 
 #        @startTime = formatOutputTime( time, time_field_format, timestamp_output_format, missingString )
          @startTime = formatOutputTime( @startTime, @time_field_format, @timestamp_output_format, "noStartTime" )
          @endTime   = formatOutputTime( @endTime,   @time_field_format, @timestamp_output_format, "noEndTime" )
          
+        rescue Exception => e
+          @logger.error("Exception while flushing and closing files - preparing start/end time", :exception => e)
+          raise
+        end
+
         # timestamps are strings here
 
         newFilename = "#{group}" + "__" + @startTime + "__" + @endTime + ".csv"
