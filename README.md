@@ -1,163 +1,86 @@
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Logstash for SCAPI - output scacsv</title>
-<link rel="stylesheet" href="http://logstash.net/style.css">
-</head>
-<body>
-<div class="container">
-<div class="header">
+# Logstash Plugin
 
-<!--main content goes here, yo!-->
-<div class="content_wrapper">
-<h2>scacsv</h2>
-<h3> Synopsis </h3>
-Receives a stream of events and outputs files complying with the SCAPI requirements related to header and file naming.
-Essentially provides a match between Logstash's 'streaming' approach and SCAPI's file-based input reqmts.
-This is what it might look like in your config file:
-<pre><code>output {
-scacsv {
-  <a href="#fields">fields</a> => ... # array (required)
-  <a href="#header">header</a> => ... # array (optional), default: {}
-  <a href="#path">path</a> => ... # string (required)
-  <a href="#group">group</a> => ... # string (required)
-  <a href="#max_size">max_size</a> => ... # number (optional), default: 0 (not used)
-  <a href="#flush_interval">flush_interval</a> => ... # number (optional), default: 60
-  <a href="#time_field">time_field</a> => ... # string (optional), default: 'timestamp'
-  <a href="#time_field_format">time_field_format</a> => ... # string (required)
-  <a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: ""
-  <a href="#increment_time">increment_time</a> => ... # boolean (optional), default: false
-  }
-}
-</code></pre>
-<h3> Details </h3>
-Note: by default this plugin expects timestamp provided to be in epoch time. You can override this expectation and supply non-epoch timestamps which will be used as using the <a href="#keep_original_timestamps">keep_original_timestamps</a> configuration option. However, such non-epoch timestamps will not automatically be incremented when determining the end time of the file
-<h4>
-<a name="fields">
-fields
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="http://logstash.net/docs/1.4.2/configuration#array">Array</a> </li>
-<li> There is no default for this setting </li>
-</ul>
-<p>Specify which fields from the incoming event you wish to output, and which order</p>
-<h4>
-<a name="header">
-header
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="http://logstash.net/docs/1.4.2/configuration#hash">Array</a> </li>
-<li> Default value is {} </li>
-</ul>
-<p>
-Used to specify a string to put as the header (first) line in the file. Useful if you want to override the default ones which are determined from the fields setting
-</p>
-<h4>
-<a name="path">
-path
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="http://logstash.net/docs/1.4.2/configuration#string">string</a> </li>
-<li> Default value is "" </li>
-</ul>
-<p>Path of temporary output file. Output will be written to this file until it is time to close the file. Then it will be renamed to SCAPI file convention. The temporary output file path will be then reused for the next set of output. For example, if output data for a CPU group, we might define the following path </p>
-</p><code>path =&gt; "./cpu.csv"</code>.</p>
-<h4>
-<a name="group">
-group (required setting)
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="http://logstash.net/docs/1.4.2/configuration#dytomh">string</a> </li>
-<li> There is no default value for this setting. </li>
-</ul>
-<p>SCAPI input filenames must have a group identifier as part of the name. The filename generally has this format <code>&lt;group&gt;__&lt;starttime&gt;__&lt;endtime&gt;.csv</code>. This <code>group</code> parameter is used to specify that group name and it will be used as a prefix when the file is renamed from <code>path</code>. For example</p>
-<p><code>path =&gt; "./cpu"</code>.</p>
-<h4>
-<a name="max_size">
-max_size
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="../configuration#number">number</a> </li>
-<li> Default value is 0 (meaning it is not used)</li>
-</ul>
-<p>This will closing and rename a file if there have been <code>max_size</code> events received. This is to limit the size of a file, and sometimes can be useful when 'chopping' a stream into chunks for use in SCAPI</p>
-<h4>
-<a name="flush_interval">
-flush_interval
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="../configuration#number">number</a> </li>
-<li> Default value is 60 </li>
-</ul>
-<p>Amount of time (seconds) to wait before flushing, closing and renaming a file, if there have been no events received. This is to ensure that after a period of idleness, we will output a SCAPI file.</p>
-<h4>
-<a name="time_field">
-time_field
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="../configuration#string">string</a> </li>
-<li> Default value is "timestamp"</li>
-</ul>
-<p>Specify which field to use as the 'timestamp' when determining filename times. Values from the 'timestamp' field will be used for <code>starttime</code> (first value seen) and <code>endtime</code> (last value seen) in the file name <code>&lt;group&gt;__&lt;starttime&gt;__&lt;endtime&gt;.csv</code></p>
-<h4>
-<a name="time_field_format (required setting)">
-time_field_format
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="../configuration#string">string</a> </li>
-<li> There is no default value for this setting</li>
-</ul>
-<p>A format string, in java SimpleDateFormat format, to specify how to interpret the timefield values e.g. <code>"yyyy-MM-dd HH:mm:ss"</code>. </p>
-<h4>
-<a name="timestamp_output_format">
-timestamp_output_format
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="../configuration#string">string</a> </li>
-<li> If not specified, it uses the format declared by <code>time_field_format</code></li>
-</ul>
-<p>A format string, in java SimpleDateFormat format, to specify how to output filename timestamps</p>
-<h4>
-<a name="increment_time">
-increment_time
-</a>
-</h4>
-<ul>
-<li> Value type is <a href="../configuration#boolean">boolean</a> </li>
-<li> Default value is false</li>
-</ul>
-<p>
-By default, the supplied timestamp will be left as is. If set to <code>true</code>, then the timestamp will be incremented by 1. This is to ensure that the end time is greater than the last event time in the file - per PI datafile requirements
-</p>
-<hr>
-</div>
-<div class="clear">
-</div>
-</div>
-</div>
-<!--closes main container div-->
-<div class="clear">
-</div>
-<div class="footer">
-<p>
-Hello! I'm your friendly footer. If you're actually reading this, I'm impressed.
-</p>
-</div>
-<noscript>
-<div style="display:inline;">
-<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/985891458/?value=0&amp;guid=ON&amp;script=0"/>
-</div>
-</noscript>
-<script src="/js/patch.js?1.4.2"></script>
-</body>
-</html>
+This is a plugin for [Logstash](https://github.com/elasticsearch/logstash).
 
+It is fully free and fully open source. The license is Apache 2.0, meaning you are pretty much free to use it however you want in whatever way.
+
+## Documentation
+
+Logstash provides infrastructure to automatically generate documentation for this plugin. We use the asciidoc format to write documentation so any comments in the source code will be first converted into asciidoc and then into html. All plugin documentation are placed under one [central location](http://www.elasticsearch.org/guide/en/logstash/current/).
+
+- For formatting code or config example, you can use the asciidoc `[source,ruby]` directive
+- For more asciidoc formatting tips, see the excellent reference here https://github.com/elasticsearch/docs#asciidoc-guide
+
+## Need Help?
+
+Need help? Try #logstash on freenode IRC or the https://discuss.elastic.co/c/logstash discussion forum.
+
+## Developing
+
+### 1. Plugin Developement and Testing
+
+#### Code
+- To get started, you'll need JRuby with the Bundler gem installed.
+
+- Create a new plugin or clone and existing from the GitHub [logstash-plugins](https://github.com/logstash-plugins) organization. We also provide [example plugins](https://github.com/logstash-plugins?query=example).
+
+- Install dependencies
+```sh
+bundle install
+```
+
+#### Test
+
+- Update your dependencies
+
+```sh
+bundle install
+```
+
+- Run tests
+
+```sh
+bundle exec rspec
+```
+
+### 2. Running your unpublished Plugin in Logstash
+
+#### 2.1 Run in a local Logstash clone
+
+- Edit Logstash `Gemfile` and add the local plugin path, for example:
+```ruby
+gem "logstash-filter-awesome", :path => "/your/local/logstash-filter-awesome"
+```
+- Install plugin
+```sh
+bin/plugin install --no-verify
+```
+- Run Logstash with your plugin
+```sh
+bin/logstash -e 'filter {awesome {}}'
+```
+At this point any modifications to the plugin code will be applied to this local Logstash setup. After modifying the plugin, simply rerun Logstash.
+
+#### 2.2 Run in an installed Logstash
+
+You can use the same **2.1** method to run your plugin in an installed Logstash by editing its `Gemfile` and pointing the `:path` to your local plugin development directory or you can build the gem and install it using:
+
+- Build your plugin gem
+```sh
+gem build logstash-filter-awesome.gemspec
+```
+- Install the plugin from the Logstash home
+```sh
+bin/plugin install /your/local/plugin/logstash-filter-awesome.gem
+```
+- Start Logstash and proceed to test the plugin
+
+## Contributing
+
+All contributions are welcome: ideas, patches, documentation, bug reports, complaints, and even something you drew up on a napkin.
+
+Programming is not a required skill. Whatever you've seen about open source and maintainers or community members  saying "send patches or die" - you will not see that here.
+
+It is more important to the community that you are able to contribute.
+
+For more information about contributing, see the [CONTRIBUTING](https://github.com/elasticsearch/logstash/blob/master/CONTRIBUTING.md) file.
