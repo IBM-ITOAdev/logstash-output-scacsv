@@ -23,6 +23,7 @@ scacsv {
   <a href="#group">group</a> => ... # string (required)
   <a href="#max_size">max_size</a> => ... # number (optional), default: 0 (not used)
   <a href="#flush_interval">flush_interval</a> => ... # number (optional), default: 60
+  <a href="#file_interval_width">file_interval_width</a> => ... # string (optional), default: ""
   <a href="#time_field">time_field</a> => ... # string (optional), default: 'timestamp'
   <a href="#time_field_format">time_field_format</a> => ... # string (required)
   <a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: ""
@@ -96,6 +97,16 @@ flush_interval
 <li> Default value is 60 </li>
 </ul>
 <p>Amount of time (seconds) to wait before flushing, closing and renaming a file, if there have been no events received. This is to ensure that after a period of idleness, we will output a SCAPI file.</p>
+<h4>
+<a name="file_interval_width">
+file_interval_width
+</a>
+</h4>
+<ul>
+<li> Value type is <a href="../configuration#string">string</a> </li>
+<li> Default value is "" (meaning it is not used). Allowed values are "MINUTE", "HOUR", "DAY"</li>
+</ul>
+<p>Setting this enables files to be closed on specified boundaries. This is useful to break incoming stream up on PI preferred boundaries.  If HOUR was set for example, then all incoming data for a particular hour would be put in a file for that hour, and when new data in the next hour arrives, the file is close and a new one opened</p>
 <h4>
 <a name="time_field">
 time_field

@@ -4,7 +4,7 @@
 #                                                                               
 # Logstash mediation output for SCAPI
 #                                                                               
-# Version 160215.1 Robert Mckeown                                               
+# Version 170615.1 Robert Mckeown                                               
 #                                                                               
 ############################################     
 
@@ -42,13 +42,12 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
   # Name of the output group - used as a prefix in the renamed file
   config :group, :validate  => :string, :required => true
   config :max_size, :validate => :number, :default => 0
+  config :file_interval_width, :validate => :string, :default => "" # Allow "" or "hour","day" or "minute"
   config :flush_interval, :validate => :number, :default => 60
   config :time_field, :validate => :string, :default => "timestamp"
 #  config :time_format, :validate => :string, :default => "%Y%m%d%H%M%S"
   config :time_field_format, :validate => :string, :required => true
   config :timestamp_output_format, :validate => :string, :default => "" # "yyyyMMddHHmmss" # java format
-
-
 
   config :tz_offset, :validate => :number, :default => 0
   config :increment_time, :validate => :boolean, :default => false
@@ -63,10 +62,34 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
     @endTime     = "missingEndTime"
     @recordCount = 0
 
-    @lastOutputTime = 0
+    @lastOutputTime = 0 #data time
     @flushInterval = @flush_interval.to_i
 
     @timerThread = Thread.new { flushWatchdog(@flush_interval) }
+
+    @currentOutputIntervalStartTime = 0
+    @fileIntervalWidthSeconds = 0
+    @closeOnIntervalBoundaries = false
+    case @file_interval_width.upcase
+    when "MINUTE"
+      @fileIntervalWidthSeconds = 60
+      @closeOnIntervalBoundaries = true
+    when "HOUR"
+      @fileIntervalWidthSeconds = 3600
+      @closeOnIntervalBoundaries = true 
+    when "DAY"
+      @fileIntervalWidthSeconds = 86400
+      @closeOnIntervalBoundaries = true
+    else
+      @fileIntervalWidthSeconds = 0 #not used  
+      @closeOnIntervalBoundaries = false
+    end
+
+    @df = nil 
+    if (@time_field_format != "epoch")
+      @df = java.text.SimpleDateFormat.new(@time_field_format)
+    end
+
 
   end
 
@@ -101,6 +124,12 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
         closeAndRenameCurrentFile
       end
     else
+
+      # Now see if we need to close file because of a new boundary
+      if @closeOnIntervalBoundaries and @recordCount >= 1 and (@currentOutputIntervalStartTime != snapTimestampToInterval(timestampAsEpochSeconds(event),@fileIntervalWidthSeconds))
+          closeAndRenameCurrentFile
+      end
+
       @formattedPath = event.sprintf(@path)
       fd = open(@formattedPath)
       @logger.debug("SCACSVreceive - after opening fd=" + fd.to_s)
@@ -127,11 +156,27 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
 
       # capture the earliest - assumption is that records are in order
       if (@recordCount) == 1 
-        @startTime = event[@time_field]
+        if !@closeOnIntervalBoundaries
+          @startTime = event[@time_field]
+        else
+          @startTime = snapTimestampToInterval(timestampAsEpochSeconds(event),@fileIntervalWidthSeconds)
+        end
       end
 
       # for every record, update endTime - again, assumption is that records are in order
-      @endTime = event[@time_field]
+      if !@closeOnIntervalBoundaries
+        @endTime = event[@time_field]
+      else
+        @endTime = @startTime + @fileIntervalWidthSeconds - 1   # end of interval
+      end
+
+#puts("After snapping. timestamp=" + event[@time_field].to_s + " startTime=" + @startTime.to_s + " endTime = " + @endTime.to_s)
+
+      # remember start of boundary for next time
+      if @closeOnIntervalBoundaries
+         @currentOutputIntervalStartTime = @startTime
+      end
+
 
       if ((@max_size > 0) and (@recordCount >= max_size))
         # Have enough records, close it out
@@ -141,6 +186,22 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
     end  
 
   end #def receive
+
+  private
+  def timestampAsEpochSeconds(event)
+    # rmck: come back and remove global refs here!
+    if !@df.nil?
+      @df.parse(event[@time_field])
+    else
+      #when df not set, we assume epoch seconds
+      event[@time_field].to_i
+    end
+  end
+
+  private
+  def snapTimestampToInterval(timestamp,interval)
+    intervalStart = (timestamp/ interval) * interval    
+  end
 
   private
   def get_value(name, event)
@@ -215,13 +276,11 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
           if (@time_field_format != "epoch")
             # if not epoch, then we expect java timestamp format
             # so must convert start/end times
+            nStartTime = @df.parse(@startTime)
+            nEndTime   = @df.parse(@endTime)
 
-            df = java.text.SimpleDateFormat.new(@time_field_format)
-            nStartTime = df.parse(@startTime)
-            nEndTime   = df.parse(@endTime)
-
-            @startTime = df.parse(@startTime).getTime
-            @endTime   = df.parse(@endTime).getTime
+            @startTime = @df.parse(@startTime).getTime
+            @endTime   = @df.parse(@endTime).getTime
 
           end
 
@@ -235,7 +294,6 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
             @endTime   = @endTime.to_i + @tz_offset
             if (@increment_time)
               # increment is used to ensure that the end-time on the filename is after the last data value
-
               @endTime = @endTime.to_i + 1000 # 1000ms = 1sec
 
             end
