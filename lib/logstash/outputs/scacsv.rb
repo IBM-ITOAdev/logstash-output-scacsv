@@ -74,6 +74,12 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
     when "MINUTE"
       @fileIntervalWidthSeconds = 60
       @closeOnIntervalBoundaries = true
+    when "FIVE"
+      @fileIntervalWidthSeconds = 300
+      @closeOnIntervalBoundaries = true 
+    when "FIFTEEN"
+      @fileIntervalWidthSeconds = 900
+      @closeOnIntervalBoundaries = true 
     when "HOUR"
       @fileIntervalWidthSeconds = 3600
       @closeOnIntervalBoundaries = true 
