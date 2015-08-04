@@ -4,7 +4,7 @@
 #                                                                               
 # Logstash mediation output for SCAPI
 #                                                                               
-# Version 170615.1 Robert Mckeown                                               
+# Version 030815.1 Robert Mckeown                                               
 #                                                                               
 ############################################     
 
@@ -132,7 +132,7 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
     else
 
       # Now see if we need to close file because of a new boundary
-      if @closeOnIntervalBoundaries and @recordCount >= 1 and (@currentOutputIntervalStartTime != snapTimestampToInterval(timestampAsEpochSeconds(event),@fileIntervalWidthSeconds))
+      if @closeOnIntervalBoundaries and @recordCount >= 1 and (@currentOutputIntervalStartTime != snapTimestampToInterval(timestampFromEventAsEpochSeconds(event),@fileIntervalWidthSeconds))
           closeAndRenameCurrentFile
       end
 
@@ -163,49 +163,50 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
       # capture the earliest - assumption is that records are in order
       if (@recordCount) == 1 
         if !@closeOnIntervalBoundaries
-          @startTime = event[@time_field]
+          @startTime = timestampFromEventAsEpochSeconds(event)
         else
-          @startTime = snapTimestampToInterval(timestampAsEpochSeconds(event),@fileIntervalWidthSeconds)
+          @startTime = snapTimestampToInterval(timestampFromEventAsEpochSeconds(event),@fileIntervalWidthSeconds)
         end
       end
 
       # for every record, update endTime - again, assumption is that records are in order
       if !@closeOnIntervalBoundaries
-        @endTime = event[@time_field]
+        @endTime = timestampFromEventAsEpochSeconds(event)
       else
         @endTime = @startTime + @fileIntervalWidthSeconds - 1   # end of interval
       end
-
-#puts("After snapping. timestamp=" + event[@time_field].to_s + " startTime=" + @startTime.to_s + " endTime = " + @endTime.to_s)
 
       # remember start of boundary for next time
       if @closeOnIntervalBoundaries
          @currentOutputIntervalStartTime = @startTime
       end
 
-
       if ((@max_size > 0) and (@recordCount >= max_size))
         # Have enough records, close it out
         closeAndRenameCurrentFile
       end
-
     end  
 
   end #def receive
 
   private
-  def timestampAsEpochSeconds(event)
-    # rmck: come back and remove global refs here!
-    if !@df.nil?
-      @df.parse(event[@time_field])
+  def timestampAsEpochSeconds(timestamp, dateFormat)
+    if !dateFormat.nil?
+      return dateFormat.parse(timestamp).getTime/1000 # convert milliSeconds to seconds
     else
-      #when df not set, we assume epoch seconds
-      event[@time_field].to_i
+      #when df not set, we assume epoch SECONDS
+      return timestamp.to_i
     end
   end
 
   private
+  def timestampFromEventAsEpochSeconds(event)
+    timestampAsEpochSeconds(event[@time_field],@df)
+  end
+
+  private
   def snapTimestampToInterval(timestamp,interval)
+    # timestamp & interval are in seconds
     intervalStart = (timestamp/ interval) * interval    
   end
 
@@ -282,11 +283,13 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
           if (@time_field_format != "epoch")
             # if not epoch, then we expect java timestamp format
             # so must convert start/end times
-            nStartTime = @df.parse(@startTime)
-            nEndTime   = @df.parse(@endTime)
+          #  nStartTime = @df.parse(@startTime)
+          #  nEndTime   = @df.parse(@endTime)
 
-            @startTime = @df.parse(@startTime).getTime
-            @endTime   = @df.parse(@endTime).getTime
+#            @startTime = @df.parse(@startTime).getTime
+#            @endTime   = @df.parse(@endTime).getTime
+
+# All timestamps are in epoch time now
 
           end
 
@@ -300,16 +303,14 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
             @endTime   = @endTime.to_i + @tz_offset
             if (@increment_time)
               # increment is used to ensure that the end-time on the filename is after the last data value
-              @endTime = @endTime.to_i + 1000 # 1000ms = 1sec
-
+              @endTime = @endTime.to_i # times are in seconds + 1000 # 1000ms = 1sec
             end
           end
 
           # then do conversion for output
-
-#        @startTime = formatOutputTime( time, time_field_format, timestamp_output_format, missingString )
-         @startTime = formatOutputTime( @startTime, @time_field_format, @timestamp_output_format, "noStartTime" )
-         @endTime   = formatOutputTime( @endTime,   @time_field_format, @timestamp_output_format, "noEndTime" )
+ 
+         @fileStartTime = formatOutputTime( @startTime, @time_field_format, @timestamp_output_format, "noStartTime" )
+         @fileEndTime   = formatOutputTime( @endTime,   @time_field_format, @timestamp_output_format, "noEndTime" )
          
         rescue Exception => e
           @logger.error("Exception while flushing and closing files - preparing start/end time", :exception => e)
@@ -318,7 +319,7 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
 
         # timestamps are strings here
 
-        newFilename = "#{group}" + "__" + @startTime + "__" + @endTime + ".csv"
+        newFilename = "#{group}" + "__" + @fileStartTime + "__" + @fileEndTime + ".csv"
 
         if newFilename.include? '/'
           @logger.error("New filename " + newFilename + " cannot contain / characters. Check the timestamp format. / characters stripped from filename")
