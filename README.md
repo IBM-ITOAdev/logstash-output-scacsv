@@ -27,7 +27,7 @@ scacsv {
   <a href="#time_field">time_field</a> => ... # string (optional), default: 'timestamp'
   <a href="#time_field_format">time_field_format</a> => ... # string (required)
   <a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: ""
-  <a href="#force_GMT_filenames">timestamp_output_format</a> => ... # boolean (optional), default: false
+  <a href="#force_GMT_filenames">force_GMT_filenames</a> => ... # boolean (optional), default: false
   <a href="#increment_time">increment_time</a> => ... # boolean (optional), default: false
   }
 }
