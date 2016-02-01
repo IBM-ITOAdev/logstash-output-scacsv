@@ -48,6 +48,7 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
 #  config :time_format, :validate => :string, :default => "%Y%m%d%H%M%S"
   config :time_field_format, :validate => :string, :required => true
   config :timestamp_output_format, :validate => :string, :default => "" # "yyyyMMddHHmmss" # java format
+  config :force_GMT_filenames, :validate => :boolean, :default => false
 
   config :tz_offset, :validate => :number, :default => 0
   config :increment_time, :validate => :boolean, :default => false
@@ -92,7 +93,7 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
     end
 
     @df = nil 
-    if (@time_field_format != "epoch")
+    if (@time_field_format != "epoch") 
       @df = java.text.SimpleDateFormat.new(@time_field_format)
     end
 
@@ -192,7 +193,7 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
   private
   def timestampAsEpochSeconds(timestamp, dateFormat)
     if !dateFormat.nil?
-      return dateFormat.parse(timestamp).getTime/1000 # convert milliSeconds to seconds
+      return dateFormat.parse(timestamp.to_s).getTime/1000 # convert milliSeconds to seconds
     else
       #when df not set, we assume epoch SECONDS
       return timestamp.to_i
@@ -250,10 +251,16 @@ class LogStash::Outputs::SCACSV < LogStash::Outputs::File
           outputString = timestamp.to_s
         else
           df = java.text.SimpleDateFormat.new(time_field_format)
+          if (@force_GMT_filenames) then
+            df.setTimeZone(java.util.TimeZone.getTimeZone("GMT"))
+          end
           outputString = df.format(epochAsJavaDate(timestamp))
         end
       else # explicit java timeformat supplied
         df = java.text.SimpleDateFormat.new(timestamp_output_format)
+        if (@force_GMT_filenames) then
+          df.setTimeZone(java.util.TimeZone.getTimeZone("GMT"))
+        end
         outputString = df.format(epochAsJavaDate(timestamp))
       end
  

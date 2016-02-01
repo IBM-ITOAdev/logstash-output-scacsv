@@ -27,6 +27,7 @@ scacsv {
   <a href="#time_field">time_field</a> => ... # string (optional), default: 'timestamp'
   <a href="#time_field_format">time_field_format</a> => ... # string (required)
   <a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: ""
+  <a href="#force_GMT_filenames">timestamp_output_format</a> => ... # boolean (optional), default: false
   <a href="#increment_time">increment_time</a> => ... # boolean (optional), default: false
   }
 }
@@ -148,6 +149,18 @@ increment_time
 </ul>
 <p>
 By default, the supplied timestamp will be left as is. If set to <code>true</code>, then the timestamp will be incremented by 1. This is to ensure that the end time is greater than the last event time in the file - per PI datafile requirements
+</p>
+<h4>
+<a name="force_GMT_filenames">
+force_GMT_filenames
+</a>
+</h4>
+<ul>
+<li> Value type is <a href="../configuration#boolean">boolean</a> </li>
+<li> Default value is false</li>
+</ul>
+<p>
+When set to true, this will ensure that the filenames are rendered with GMT timestamps, independent of what the the locale for the host is set to. This is primarily useful when ISO8601 format timestamps are used
 </p>
 <hr>
 </div>
