@@ -26,14 +26,14 @@ scacsv {
   <a href="#file_interval_width">file_interval_width</a> => ... # string (optional), default: ""
   <a href="#time_field">time_field</a> => ... # string (optional), default: 'timestamp'
   <a href="#time_field_format">time_field_format</a> => ... # string (required)
-  <a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: ""
+  <a href="#timestamp_output_format">timestamp_output_format</a> => ... # string (optional), default: Uses values from time_field_format
   <a href="#force_GMT_filenames">force_GMT_filenames</a> => ... # boolean (optional), default: false
   <a href="#increment_time">increment_time</a> => ... # boolean (optional), default: false
   }
 }
 </code></pre>
 <h3> Details </h3>
-Note: by default this plugin expects timestamp provided to be in epoch time. You can override this expectation and supply non-epoch timestamps which will be used as using the <a href="#keep_original_timestamps">keep_original_timestamps</a> configuration option. However, such non-epoch timestamps will not automatically be incremented when determining the end time of the file
+
 <h4>
 <a name="fields">
 fields
